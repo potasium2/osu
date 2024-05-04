@@ -10,9 +10,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
 {
     public static class SpeedEvaluator
     {
-        private const double single_spacing_threshold = 125;
-        private const double min_speed_bonus = 75; // ~200BPM
-        private const double speed_balancing_factor = 40;
+        private const double min_speed_bonus = 70; // ~215BPM
+        private const double speed_balancing_factor = 1;
+        private static double curr_longest_straight = 0;
 
         /// <summary>
         /// Evaluates the difficulty of tapping the current object, based on:
@@ -29,8 +29,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
 
             // derive strainTime for calculation
             var osuCurrObj = (OsuDifficultyHitObject)current;
-            var osuPrevObj = current.Index > 0 ? (OsuDifficultyHitObject)current.Previous(0) : null;
             var osuNextObj = (OsuDifficultyHitObject?)current.Next(0);
+            var osuPrevObj = current.Index > 0 ? (OsuDifficultyHitObject)current.Previous(0) : null;
 
             double strainTime = osuCurrObj.StrainTime;
             double doubletapness = 1;
@@ -54,12 +54,18 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
             double speedBonus = 1.0;
 
             if (strainTime < min_speed_bonus)
-                speedBonus = 1 + 0.75 * Math.Pow((min_speed_bonus - strainTime) / speed_balancing_factor, 2);
+                speedBonus = 2 + Math.Sin(Math.PI / 2 * -Math.Pow((strainTime - (min_speed_bonus / 2)) / (min_speed_bonus / 2), speed_balancing_factor));
 
-            double travelDistance = osuPrevObj?.TravelDistance ?? 0;
-            double distance = Math.Min(single_spacing_threshold, travelDistance + osuCurrObj.MinimumJumpDistance);
+            // Give a buff to longer streams at ~180BPM and higher
+            if (strainTime < (min_speed_bonus + 25 / 3) || (osuPrevObj != null && osuPrevObj.TravelDistance > 0))
+                curr_longest_straight++;
+            else
+                curr_longest_straight = 0;
 
-            return (speedBonus + speedBonus * Math.Pow(distance / single_spacing_threshold, 3.5)) * doubletapness / strainTime;
+            // Apply the stream length bonus to streams with >20 notes and <160 notes with an exponential curve
+            speedBonus *= Math.Clamp(1 + ((Math.Pow(curr_longest_straight, 2) - 400) / 50000), 1, 1.25);
+
+            return speedBonus * (doubletapness / strainTime);
         }
     }
 }

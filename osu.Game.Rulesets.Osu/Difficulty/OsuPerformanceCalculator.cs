@@ -98,11 +98,14 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
             aimValue *= getComboScalingFactor(attributes);
 
+            // New working curve values until I eventually move AR Reading into its own separate skillset
             double approachRateFactor = 0.0;
-            if (attributes.ApproachRate > 10.33)
-                approachRateFactor = 0.3 * (attributes.ApproachRate - 10.33);
-            else if (attributes.ApproachRate < 8.0)
-                approachRateFactor = 0.05 * (8.0 - attributes.ApproachRate);
+            if (attributes.ApproachRate > 10)
+                approachRateFactor = 0.2 * Math.Pow(attributes.ApproachRate - 10, 2);
+            else if (attributes.ApproachRate < 9.0)
+                approachRateFactor = 0.15 * (Math.Pow(9, 0.585) - Math.Pow(attributes.ApproachRate, 0.585));
+            else if (attributes.ApproachRate < 0.0)
+                approachRateFactor = 0.05 * (8 - attributes.ApproachRate);
 
             if (score.Mods.Any(h => h is OsuModRelax))
                 approachRateFactor = 0.0;
@@ -151,6 +154,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
             speedValue *= getComboScalingFactor(attributes);
 
+            // Since Speed is mostly based on tapping/stamina it doesn't really make sense to give a buff to High AR
+            // I'll definitely give a buff to sharp angle changes and early starts (The first ~7 Notes of a stream) whenever I make AR Reading Skill
+            // For now this will just use the old value
             double approachRateFactor = 0.0;
             if (attributes.ApproachRate > 10.33)
                 approachRateFactor = 0.3 * (attributes.ApproachRate - 10.33);
