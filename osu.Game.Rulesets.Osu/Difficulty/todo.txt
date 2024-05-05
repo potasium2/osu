@@ -2,8 +2,8 @@
 - buff hidden
 x remove aim from speed
 - completely overhaul aim
-- buff high acc on speed consistency maps
+x buff high acc on speed consistency maps
 - rework how misses affect final score
-- give a slight buff to lower cs thats <4 and >7
+? give a slight buff to lower cs thats <4 and >7
 x give a buff to low ar
 - implement lazer mods cause funny :)

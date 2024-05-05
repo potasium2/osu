@@ -10,7 +10,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
 {
     public static class AimEvaluator
     {
-        private const double single_spacing_threshold = 125;
+        private const double single_spacing_threshold = 85;
         private const double wide_angle_multiplier = 1.5;
         private const double acute_angle_multiplier = 1.95;
         private const double slider_multiplier = 1.35;
@@ -131,7 +131,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
             double travelDistance = osuPrevObj?.TravelDistance ?? 0;
             double distance = Math.Min(single_spacing_threshold, travelDistance + osuCurrObj.MinimumJumpDistance);
 
-            return aimStrain * Math.Pow(distance / single_spacing_threshold, 3.5);
+            return aimStrain * Math.Pow(distance / single_spacing_threshold, 2);
         }
 
         private static double calcWideAngleBonus(double angle) => Math.Pow(Math.Sin(3.0 / 4 * (Math.Min(8.0 / 9 * Math.PI, Math.Max(2 * Math.PI / 9, angle)) - Math.PI / 6)), 2);

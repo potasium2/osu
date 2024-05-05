@@ -56,14 +56,15 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
             if (strainTime < min_speed_bonus)
                 speedBonus = 2 + Math.Sin(Math.PI / 2 * -Math.Pow((strainTime - (min_speed_bonus / 2)) / (min_speed_bonus / 2), speed_balancing_factor));
 
-            // Give a buff to longer streams at ~180BPM and higher
-            if (strainTime < (min_speed_bonus + 25 / 3) || (osuPrevObj != null && osuPrevObj.TravelDistance > 0))
+            // Give a buff to longer streams at ~180BPM and higher accounting for sliders *This if statement is awful btw
+            if (strainTime < (min_speed_bonus + 40 / 3) || (osuPrevObj != null && osuNextObj != null) && (osuNextObj.TravelDistance > 0 && osuPrevObj.TravelDistance == 0))
                 curr_longest_straight++;
             else
                 curr_longest_straight = 0;
 
-            // Apply the stream length bonus to streams with >20 notes and <160 notes with an exponential curve
-            speedBonus *= Math.Clamp(1 + ((Math.Pow(curr_longest_straight, 2) - 400) / 50000), 1, 1.25);
+            // Apply the stream length bonus to streams
+            if (strainTime > 25)
+                speedBonus *= Math.Clamp(1 + ((Math.Pow(curr_longest_straight, 1 / (strainTime / 100)) - 400) / 50000), 1, 1.3);
 
             return speedBonus * (doubletapness / strainTime);
         }

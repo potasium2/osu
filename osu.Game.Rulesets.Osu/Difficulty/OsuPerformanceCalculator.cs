@@ -92,8 +92,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                                  (totalHits > 2000 ? Math.Log10(totalHits / 2000.0) * 0.5 : 0.0);
             aimValue *= lengthBonus;
 
-            // Penalize misses by assessing # of misses relative to the total # of objects. Default a 3% reduction for any # of misses.
-            if (effectiveMissCount > 0)
+            // Reduce penalty for misses near the start or end of a map to disincentivize retry spam/reduce feeling of mind block
+            if (effectiveMissCount > 0 && (scoreMaxCombo) < (attributes.MaxCombo * 0.95))
                 aimValue *= 0.97 * Math.Pow(1 - Math.Pow(effectiveMissCount / totalHits, 0.775), effectiveMissCount);
 
             aimValue *= getComboScalingFactor(attributes);
@@ -148,8 +148,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                                  (totalHits > 2000 ? Math.Log10(totalHits / 2000.0) * 0.5 : 0.0);
             speedValue *= lengthBonus;
 
-            // Penalize misses by assessing # of misses relative to the total # of objects. Default a 3% reduction for any # of misses.
-            if (effectiveMissCount > 0)
+            // Reduce penalty for misses near the start or end of a map with the exception of most TV Size farm maps.
+            if (effectiveMissCount > 0 && attributes.MaxCombo > 500 && (scoreMaxCombo) < (attributes.MaxCombo * 0.95))
                 speedValue *= 0.97 * Math.Pow(1 - Math.Pow(effectiveMissCount / totalHits, 0.775), Math.Pow(effectiveMissCount, .875));
 
             speedValue *= getComboScalingFactor(attributes);
@@ -159,7 +159,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             // For now this will just use the old value
             double approachRateFactor = 0.0;
             if (attributes.ApproachRate > 10.33)
-                approachRateFactor = 0.3 * (attributes.ApproachRate - 10.33);
+                approachRateFactor = 0.5 * Math.Pow((attributes.ApproachRate - 10.33), 3 / 2);
 
             speedValue *= 1.0 + approachRateFactor * lengthBonus; // Buff for longer maps with high AR.
 
@@ -182,7 +182,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             double relevantAccuracy = attributes.SpeedNoteCount == 0 ? 0 : (relevantCountGreat * 6.0 + relevantCountOk * 2.0 + relevantCountMeh) / (attributes.SpeedNoteCount * 6.0);
 
             // Scale the speed value with accuracy and OD.
-            speedValue *= (0.95 + Math.Pow(attributes.OverallDifficulty, 2) / 750) * Math.Pow((accuracy + relevantAccuracy) / 2.0, (14.5 - Math.Max(attributes.OverallDifficulty, 8)) / 2);
+            speedValue *= (0.95 + Math.Pow(attributes.OverallDifficulty, 2) / 750) * Math.Pow((Math.Pow(accuracy, 2) / 2.5) + (Math.Pow(relevantAccuracy, 2) / 1.5), (14.5 - Math.Max(attributes.OverallDifficulty, 8)) / 2);
 
             // Scale the speed value with # of 50s to punish doubletapping.
             speedValue *= Math.Pow(0.99, countMeh < totalHits / 500.0 ? 0 : countMeh - totalHits / 500.0);
