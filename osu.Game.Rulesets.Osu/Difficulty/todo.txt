@@ -1,9 +1,16 @@
-﻿- buff hardrock
+﻿- = undone
+? = working on/retroactive change
+x = complete
+
+only one of these will be buffed later, it will likely be no mod
+- buff no mod
+- buff hardrock
 - buff hidden
+
 x remove aim from speed
 - completely overhaul aim
-x buff high acc on speed consistency maps
-- rework how misses affect final score
-? give a slight buff to lower cs thats <4 and >7
+x buff high acc (did so on high bpm speed)
+x implement combo scaling removal
+x slight nerf length bonus
+x give a slight buff to lower cs thats <4 and >7 (may bring a nerf to the cs 5-6 range)
 x give a buff to low ar
-- implement lazer mods cause funny :)

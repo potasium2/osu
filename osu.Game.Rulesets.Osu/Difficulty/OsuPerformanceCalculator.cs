@@ -13,7 +13,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 {
     public class OsuPerformanceCalculator : PerformanceCalculator
     {
-        public const double PERFORMANCE_BASE_MULTIPLIER = 1.14; // This is being adjusted to keep the final pp value scaled around what it used to be when changing things.
+        // I'm going to frank, I don't care about keeping PP values similar to what the are
+        // As long as values feel correct in correlation with each other that's good enough for me :+1:
+        public const double PERFORMANCE_BASE_MULTIPLIER = 1;
 
         private double accuracy;
         private int scoreMaxCombo;
@@ -88,15 +90,13 @@ namespace osu.Game.Rulesets.Osu.Difficulty
         {
             double aimValue = Math.Pow(5.0 * Math.Max(1.0, attributes.AimDifficulty / 0.0675) - 4.0, 3.0) / 100000.0;
 
-            double lengthBonus = 0.95 + 0.4 * Math.Min(1.0, totalHits / 2000.0) +
-                                 (totalHits > 2000 ? Math.Log10(totalHits / 2000.0) * 0.5 : 0.0);
+            double lengthBonus = 0.95 + 0.5 * Math.Min(1.0, totalHits / 4000.0) +
+                                 (totalHits > 4000 ? Math.Log(totalHits / 4000.0) * 0.5 : 0.0);
             aimValue *= lengthBonus;
 
-            // Reduce penalty for misses near the start or end of a map to disincentivize retry spam/reduce feeling of mind block
-            if (effectiveMissCount > 0 && (scoreMaxCombo) < (attributes.MaxCombo * 0.95))
-                aimValue *= 0.97 * Math.Pow(1 - Math.Pow(effectiveMissCount / totalHits, 0.775), effectiveMissCount);
-
-            aimValue *= getComboScalingFactor(attributes);
+            // Aim Should Still be affected in some way by combo scaling so Aim Consistency maps don't essentially become free in a sense
+            if (effectiveMissCount > 0)
+                aimValue *= getComboScalingFactor(attributes, attributes.AimDifficultStrainCount);
 
             // New working curve values until I eventually move AR Reading into its own separate skillset
             double approachRateFactor = 0.0;
@@ -117,7 +117,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             else if (score.Mods.Any(m => m is OsuModHidden || m is OsuModTraceable))
             {
                 // We want to give more reward for lower AR when it comes to aim and HD. This nerfs high AR and buffs lower AR.
-                aimValue *= 1.0 + 0.04 * (12.0 - attributes.ApproachRate);
+                aimValue *= 1.0 + 0.05 * (12.0 - attributes.ApproachRate);
             }
 
             // We assume 15% of sliders in a map are difficult since there's no way to tell from the performance calculator.
@@ -144,15 +144,13 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
             double speedValue = Math.Pow(5.0 * Math.Max(1.0, attributes.SpeedDifficulty / 0.0675) - 4.0, 3.0) / 100000.0;
 
-            double lengthBonus = 0.95 + 0.4 * Math.Min(1.0, totalHits / 2000.0) +
-                                 (totalHits > 2000 ? Math.Log10(totalHits / 2000.0) * 0.5 : 0.0);
+            double lengthBonus = 0.95 + 0.5 * Math.Min(1.0, totalHits / 4000.0) +
+                                 (totalHits > 4000 ? Math.Log(totalHits / 4000.0) * 0.5 : 0.0);
             speedValue *= lengthBonus;
 
-            // Reduce penalty for misses near the start or end of a map with the exception of most TV Size farm maps.
-            if (effectiveMissCount > 0 && attributes.MaxCombo > 500 && (scoreMaxCombo) < (attributes.MaxCombo * 0.95))
-                speedValue *= 0.97 * Math.Pow(1 - Math.Pow(effectiveMissCount / totalHits, 0.775), Math.Pow(effectiveMissCount, .875));
-
-            speedValue *= getComboScalingFactor(attributes);
+            // Implement Apollo's Combo Scaling Removal
+            if (effectiveMissCount > 0)
+                speedValue *= calculateMissPenalty(effectiveMissCount, attributes.SpeedDifficultStrainCount);
 
             // Since Speed is mostly based on tapping/stamina it doesn't really make sense to give a buff to High AR
             // I'll definitely give a buff to sharp angle changes and early starts (The first ~7 Notes of a stream) whenever I make AR Reading Skill
@@ -171,7 +169,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             else if (score.Mods.Any(m => m is OsuModHidden || m is OsuModTraceable))
             {
                 // We want to give more reward for lower AR when it comes to aim and HD. This nerfs high AR and buffs lower AR.
-                speedValue *= 1.0 + 0.04 * (12.0 - attributes.ApproachRate);
+                speedValue *= 1.0 + 0.05 * (12.0 - attributes.ApproachRate);
             }
 
             // Calculate accuracy assuming the worst case scenario
@@ -182,7 +180,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             double relevantAccuracy = attributes.SpeedNoteCount == 0 ? 0 : (relevantCountGreat * 6.0 + relevantCountOk * 2.0 + relevantCountMeh) / (attributes.SpeedNoteCount * 6.0);
 
             // Scale the speed value with accuracy and OD.
-            speedValue *= (0.95 + Math.Pow(attributes.OverallDifficulty, 2) / 750) * Math.Pow((Math.Pow(accuracy, 2) / 2.5) + (Math.Pow(relevantAccuracy, 2) / 1.5), (14.5 - Math.Max(attributes.OverallDifficulty, 8)) / 2);
+            speedValue *= (0.95 + Math.Pow(attributes.OverallDifficulty, 2) / 750) * Math.Pow(Math.Pow(accuracy, 2) / 2 + Math.Pow(relevantAccuracy, 2) / 2, (12 - Math.Max(attributes.OverallDifficulty, 8)) / 2);
 
             // Scale the speed value with # of 50s to punish doubletapping.
             speedValue *= Math.Pow(0.99, countMeh < totalHits / 500.0 ? 0 : countMeh - totalHits / 500.0);
@@ -270,7 +268,14 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             return Math.Max(countMiss, comboBasedMissCount);
         }
 
-        private double getComboScalingFactor(OsuDifficultyAttributes attributes) => attributes.MaxCombo <= 0 ? 1.0 : Math.Min(Math.Pow(scoreMaxCombo, 0.8) / Math.Pow(attributes.MaxCombo, 0.8), 1.0);
+        // Miss penalty assumes that a player will miss on the hardest parts of a map,
+        // so we use the amount of relatively difficult sections to adjust miss penalty
+        // to make it more punishing on maps with lower amount of hard sections.
+        private double calculateMissPenalty(double missCount, double difficultStrainCount) => 0.96 / ((missCount / (4 * Math.Pow(Math.Log(difficultStrainCount), 0.94))) + 1);
+        private double getComboScalingFactor(OsuDifficultyAttributes attributes, double difficultStrainCount) => attributes.MaxCombo <= 0 ? 1.0 : difficultStrainCount <= 1 ? 1.0 :
+            Math.Min(Math.Pow(scoreMaxCombo, 0.8) / Math.Pow(attributes.MaxCombo, 0.8) * Math.Pow(difficultStrainCount, 0.2), 1.0);
+        private double getComboScalingFactor(OsuDifficultyAttributes attributes) => attributes.MaxCombo <= 0 ? 1.0 :
+            Math.Min(Math.Pow(scoreMaxCombo, 0.8) / Math.Pow(attributes.MaxCombo, 0.8), 1.0);
         private int totalHits => countGreat + countOk + countMeh + countMiss;
     }
 }

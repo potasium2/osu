@@ -10,9 +10,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
 {
     public static class SpeedEvaluator
     {
-        private const double min_speed_bonus = 70; // ~215BPM
+        private const double min_speed_bonus = 75; // ~200BPM
         private const double speed_balancing_factor = 1;
-        private static double curr_longest_straight = 0;
 
         /// <summary>
         /// Evaluates the difficulty of tapping the current object, based on:
@@ -30,7 +29,6 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
             // derive strainTime for calculation
             var osuCurrObj = (OsuDifficultyHitObject)current;
             var osuNextObj = (OsuDifficultyHitObject?)current.Next(0);
-            var osuPrevObj = current.Index > 0 ? (OsuDifficultyHitObject)current.Previous(0) : null;
 
             double strainTime = osuCurrObj.StrainTime;
             double doubletapness = 1;
@@ -46,25 +44,11 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
                 doubletapness = Math.Pow(speedRatio, 1 - windowRatio);
             }
 
-            // Cap deltatime to the OD 300 hitwindow.
-            // 0.93 is derived from making sure 260bpm OD8 streams aren't nerfed harshly, whilst 0.92 limits the effect of the cap.
-            strainTime /= Math.Clamp((strainTime / osuCurrObj.HitWindowGreat) / 0.93, 0.92, 1);
-
             // derive speedBonus for calculation
             double speedBonus = 1.0;
 
             if (strainTime < min_speed_bonus)
                 speedBonus = 2 + Math.Sin(Math.PI / 2 * -Math.Pow((strainTime - (min_speed_bonus / 2)) / (min_speed_bonus / 2), speed_balancing_factor));
-
-            // Give a buff to longer streams at ~180BPM and higher accounting for sliders *This if statement is awful btw
-            if (strainTime < (min_speed_bonus + 40 / 3) || (osuPrevObj != null && osuNextObj != null) && (osuNextObj.TravelDistance > 0 && osuPrevObj.TravelDistance == 0))
-                curr_longest_straight++;
-            else
-                curr_longest_straight = 0;
-
-            // Apply the stream length bonus to streams
-            if (strainTime > 25)
-                speedBonus *= Math.Clamp(1 + ((Math.Pow(curr_longest_straight, 1 / (strainTime / 100)) - 400) / 50000), 1, 1.3);
 
             return speedBonus * (doubletapness / strainTime);
         }

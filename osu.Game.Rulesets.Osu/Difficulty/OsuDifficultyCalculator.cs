@@ -43,6 +43,13 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
             double flashlightRating = 0.0;
 
+            int aimDifficultyStrainCount = ((OsuStrainSkill)skills[0]).RelevantDifficultStrains();
+            int speedDifficultyStrainCount = ((OsuStrainSkill)skills[2]).RelevantDifficultStrains();
+
+            // Total number of strains in a map can vary by clockrate, and this needs to be corrected for.
+            aimDifficultyStrainCount = (int)(aimDifficultyStrainCount * clockRate);
+            speedDifficultyStrainCount = (int)(aimDifficultyStrainCount * clockRate);
+
             if (mods.Any(h => h is OsuModFlashlight))
                 flashlightRating = Math.Sqrt(skills[3].DifficultyValue()) * difficulty_multiplier;
 
@@ -98,6 +105,8 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                 Mods = mods,
                 AimDifficulty = aimRating,
                 SpeedDifficulty = speedRating,
+                AimDifficultStrainCount = aimDifficultyStrainCount,
+                SpeedDifficultStrainCount = speedDifficultyStrainCount,
                 SpeedNoteCount = speedNotes,
                 FlashlightDifficulty = flashlightRating,
                 SliderFactor = sliderFactor,
