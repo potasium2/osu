@@ -104,7 +104,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                 SpeedDifficultStrainCount = speedDifficultyStrainCount,
                 DrainRate = drainRate,
                 MaxCombo = beatmap.GetMaxCombo(),
-                ApproachRate = beatmap.Difficulty.ApproachRate,
+                ApproachRate = CalculateApproachRateChange(beatmap.Difficulty.ApproachRate, clockRate),
                 HitCircleCount = hitCirclesCount,
                 SliderCount = sliderCount,
                 SpinnerCount = spinnerCount,
@@ -135,7 +135,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                 new Aim(mods, true),
                 new Aim(mods, false),
                 new Speed(mods),
-                new Reading(mods, beatmap.Difficulty.ApproachRate)
+                new Reading(mods, CalculateApproachRateChange(beatmap.Difficulty.ApproachRate, clockRate))
             };
 
             return skills.ToArray();
@@ -151,5 +151,14 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             new OsuModFlashlight(),
             new MultiMod(new OsuModFlashlight(), new OsuModHidden())
         };
+
+        protected static double CalculateApproachRateChange(double approachRate, double clockRate)
+        {
+            double reactionTime = approachRate > 5.0 ? 1200 + 750 * (5 - approachRate) / 5 : 1200 + 600 * (5 - approachRate) / 5;
+            reactionTime /= clockRate;
+            double msToAr = reactionTime < 1200 ? (1950 - reactionTime) / 150 : (1800 - reactionTime) / 120;
+
+            return Math.Min(11.0, msToAr);
+        }
     }
 }

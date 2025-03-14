@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Numerics;
 using osu.Game.Rulesets.Difficulty.Preprocessing;
 using osu.Game.Rulesets.Osu.Difficulty.Preprocessing;
 using osu.Game.Rulesets.Osu.Objects;
@@ -11,19 +12,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
     public static class ReadingEvaluator
     {
         // AR Constants
-
-
-        // Hidden Constants
-
-
-        // Flashlight Constants
-        private const double max_opacity_bonus = 0.4;
-        private const double hidden_bonus = 0.2;
-
-        private const double min_velocity = 0.5;
-        private const double slider_multiplier = 1.3;
-
-        private const double min_angle_multiplier = 0.2;
+        private const double max_approach_rate_bonus = 8.67;
+        private const double min_approach_rate_bonus = 10.33;
+        private const double reading_hidden_bonus = 1.75;
 
         public static double ReadingDifficultyOf(DifficultyHitObject current, bool hidden, double approachRate)
         {
@@ -31,36 +22,86 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
                 return 0;
 
             var osuCurrent = (OsuDifficultyHitObject)current;
+            var osuFirstFormerObj = (OsuDifficultyHitObject)current.Previous(0);
+            var osuSecondFormerObj = (OsuDifficultyHitObject)current.Previous(1);
+
+            double readingStrain = 0.0;
+
+            // Bonus for low-AR
+            if (approachRate < max_approach_rate_bonus)
+            {
+                readingStrain = 1.0 - Math.Pow(approachRate / max_approach_rate_bonus, 0.6);
+
+                if (hidden)
+                    readingStrain *= reading_hidden_bonus;
+            }
+
+            // Bonus for high-AR
+            if (approachRate > min_approach_rate_bonus)
+            {
+                readingStrain = Math.Pow(approachRate / min_approach_rate_bonus, 4.0) - 1.0;
+            }
 
             // TODO:
 
             // Low-AR:
             // Bonus for stacked return patterns
             // Bonus for Note Density (greater difficulty for aim > speed)
-            // Bonus for using Hidden
             // Bonus for rhythmically complex patterns
 
             // High-AR:
-            // Static bonus for >10.33 AR
             // Bonus for cut patterns (Cut Streams, Stacked Triples, etc.)
 
-            return 0.0;
+            return readingStrain;
         }
+
+
+
+        // Hidden Constants
+        private const double max_stack_distance = 15;
 
         public static double HiddenDifficultyOf(DifficultyHitObject current)
         {
-            if (current == null)
+            if (current.Previous(2) == null)
                 return 0;
 
             var osuCurrent = (OsuDifficultyHitObject)current;
+            var osuFirstFormerObj = (OsuDifficultyHitObject)current.Previous(0);
+            var osuSecondFormerObj = (OsuDifficultyHitObject)current.Previous(1);
+
+            var currentBaseObject = (OsuHitObject)osuCurrent.BaseObject;
+
+            double scalingFactor = 52.0 / currentBaseObject.Radius;
+            double hiddenStrain = 0.0;
+
+            // Bonus for stacked doubles and triples
+            if (osuSecondFormerObj.LazyJumpDistance > max_stack_distance)
+            {
+                if (osuCurrent.MinimumJumpDistance < max_stack_distance)
+                    hiddenStrain += osuCurrent.MinimumJumpDistance * scalingFactor / 2.0;
+                if (osuFirstFormerObj.MinimumJumpDistance < max_stack_distance)
+                    hiddenStrain += osuFirstFormerObj.MinimumJumpDistance * scalingFactor / 2.0;
+            }
+
+
 
             // TODO:
-            // Bonus for stacked objects
             // Bonus for Flow
             // Bonus for Aim Consistency (Long Jump Patterns)
 
-            return 0.0;
+            return hiddenStrain;
         }
+
+
+
+        // Flashlight Constants
+        private const double max_opacity_bonus = 0.4;
+        private const double flashlight_hidden_bonus = 1.2;
+
+        private const double min_velocity = 0.5;
+        private const double slider_multiplier = 1.3;
+
+        private const double min_angle_multiplier = 0.2;
 
         /// <summary>
         /// Evaluates the difficulty of memorising and hitting an object, based on:
@@ -84,7 +125,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
             double smallDistNerf = 1.0;
             double cumulativeStrainTime = 0.0;
 
-            double result = 0.0;
+            double flashlightStrain = 0.0;
 
             OsuDifficultyHitObject lastObj = osuCurrent;
 
@@ -112,7 +153,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
                     // Bonus based on how visible the object is.
                     double opacityBonus = 1.0 + max_opacity_bonus * (1.0 - osuCurrent.OpacityAt(currentHitObject.StartTime, hidden));
 
-                    result += stackNerf * opacityBonus * scalingFactor * jumpDistance / cumulativeStrainTime;
+                    flashlightStrain += stackNerf * opacityBonus * scalingFactor * jumpDistance / cumulativeStrainTime;
 
                     if (currentObj.Angle != null && osuCurrent.Angle != null)
                     {
@@ -125,14 +166,14 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
                 lastObj = currentObj;
             }
 
-            result = Math.Pow(smallDistNerf * result, 2.0);
+            flashlightStrain = Math.Pow(smallDistNerf * flashlightStrain, 2.0);
 
             // Additional bonus for Hidden due to there being no approach circles.
             if (hidden)
-                result *= 1.0 + hidden_bonus;
+                flashlightStrain *= flashlight_hidden_bonus;
 
             // Nerf patterns with repeated angles.
-            result *= min_angle_multiplier + (1.0 - min_angle_multiplier) / (angleRepeatCount + 1.0);
+            flashlightStrain *= min_angle_multiplier + (1.0 - min_angle_multiplier) / (angleRepeatCount + 1.0);
 
             double sliderBonus = 0.0;
 
@@ -152,9 +193,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
                     sliderBonus /= (osuSlider.RepeatCount + 1);
             }
 
-            result += sliderBonus * slider_multiplier;
+            flashlightStrain += sliderBonus * slider_multiplier;
 
-            return result;
+            return flashlightStrain;
         }
     }
 }

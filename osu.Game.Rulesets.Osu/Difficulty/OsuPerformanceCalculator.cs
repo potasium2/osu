@@ -20,7 +20,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 {
     public class OsuPerformanceCalculator : PerformanceCalculator
     {
-        public const double PERFORMANCE_BASE_MULTIPLIER = 1.34; // This is being adjusted to keep the final pp value scaled around what it used to be when changing things.
+        public const double PERFORMANCE_BASE_MULTIPLIER = 1.37; // This is being adjusted to keep the final pp value scaled around what it used to be when changing things.
 
         private bool usingClassicSliderAccuracy;
 
@@ -256,16 +256,11 @@ namespace osu.Game.Rulesets.Osu.Difficulty
         }
         private double computeReadingValue(ScoreInfo score, OsuDifficultyAttributes attributes)
         {
-            double readingValue = Reading.DifficultyToPerformance(attributes.ReadingDifficulty);
+            double readingValue = OsuStrainSkill.DifficultyToPerformance(attributes.ReadingDifficulty);
 
             // Account for shorter maps having a higher ratio of 0 combo/100 combo flashlight radius.
             readingValue *= 0.7 + 0.1 * Math.Min(1.0, totalHits / 200.0) +
                                (totalHits > 200 ? 0.2 * Math.Min(1.0, (totalHits - 200) / 200.0) : 0.0);
-
-            // Grant additional length bonus taking into account flashligh radius.
-            double lengthBonus = scoreMaxCombo > 400 ? 0.95 + 0.4 * Math.Min(1.0, (scoreMaxCombo - 400) / 2000.0) +
-                                 (scoreMaxCombo > 2400 ? Math.Log10((scoreMaxCombo - 400) / 2000.0) * 0.5 : 0.0) : 1.0;
-            readingValue *= lengthBonus;
 
             // Penalize misses by assessing # of misses relative to the total # of objects. Default a 3% reduction for any # of misses.
             if (effectiveMissCount > 0)

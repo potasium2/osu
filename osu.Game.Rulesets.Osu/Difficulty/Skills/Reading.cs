@@ -21,6 +21,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         private readonly bool hasHiddenMod;
         private readonly bool hasFlashlightMod;
         private readonly double ApproachRate;
+
         public Reading(Mod[] mods, double approachRate)
             : base(mods)
         {
