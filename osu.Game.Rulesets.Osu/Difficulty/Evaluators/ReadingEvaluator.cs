@@ -8,8 +8,15 @@ using osu.Game.Rulesets.Osu.Objects;
 
 namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
 {
-    public static class FlashlightEvaluator
+    public static class ReadingEvaluator
     {
+        // AR Constants
+
+
+        // Hidden Constants
+
+
+        // Flashlight Constants
         private const double max_opacity_bonus = 0.4;
         private const double hidden_bonus = 0.2;
 
@@ -17,6 +24,43 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
         private const double slider_multiplier = 1.3;
 
         private const double min_angle_multiplier = 0.2;
+
+        public static double ReadingDifficultyOf(DifficultyHitObject current, bool hidden, double approachRate)
+        {
+            if (current == null)
+                return 0;
+
+            var osuCurrent = (OsuDifficultyHitObject)current;
+
+            // TODO:
+
+            // Low-AR:
+            // Bonus for stacked return patterns
+            // Bonus for Note Density (greater difficulty for aim > speed)
+            // Bonus for using Hidden
+            // Bonus for rhythmically complex patterns
+
+            // High-AR:
+            // Static bonus for >10.33 AR
+            // Bonus for cut patterns (Cut Streams, Stacked Triples, etc.)
+
+            return 0.0;
+        }
+
+        public static double HiddenDifficultyOf(DifficultyHitObject current)
+        {
+            if (current == null)
+                return 0;
+
+            var osuCurrent = (OsuDifficultyHitObject)current;
+
+            // TODO:
+            // Bonus for stacked objects
+            // Bonus for Flow
+            // Bonus for Aim Consistency (Long Jump Patterns)
+
+            return 0.0;
+        }
 
         /// <summary>
         /// Evaluates the difficulty of memorising and hitting an object, based on:
@@ -28,7 +72,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Evaluators
         /// <item><description>and whether the hidden mod is enabled.</description></item>
         /// </list>
         /// </summary>
-        public static double EvaluateDifficultyOf(DifficultyHitObject current, bool hidden)
+        public static double FlashlightDifficultyOf(DifficultyHitObject current, bool hidden)
         {
             if (current.BaseObject is Spinner)
                 return 0;

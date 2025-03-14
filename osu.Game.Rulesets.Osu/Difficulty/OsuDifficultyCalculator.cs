@@ -48,40 +48,36 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             double speedNotes = speed.RelevantNoteCount();
             double speedDifficultyStrainCount = speed.CountTopWeightedStrains();
 
-            var flashlight = skills.OfType<Flashlight>().SingleOrDefault();
-            double flashlightRating = flashlight == null ? 0.0 : Math.Sqrt(flashlight.DifficultyValue()) * difficulty_multiplier;
+            var reading = skills.OfType<Reading>().SingleOrDefault();
+            double readingRating = Math.Sqrt(reading.DifficultyValue()) * difficulty_multiplier;
 
             if (mods.Any(m => m is OsuModTouchDevice))
             {
                 aimRating = Math.Pow(aimRating, 0.8);
-                flashlightRating = Math.Pow(flashlightRating, 0.8);
             }
 
             if (mods.Any(h => h is OsuModRelax))
             {
                 aimRating *= 0.9;
                 speedRating = 0.0;
-                flashlightRating *= 0.7;
+                readingRating *= 0.7;
             }
             else if (mods.Any(h => h is OsuModAutopilot))
             {
                 speedRating *= 0.5;
                 aimRating = 0.0;
-                flashlightRating *= 0.4;
+                readingRating *= 0.4;
             }
 
             double baseAimPerformance = OsuStrainSkill.DifficultyToPerformance(aimRating);
             double baseSpeedPerformance = OsuStrainSkill.DifficultyToPerformance(speedRating);
-            double baseFlashlightPerformance = 0.0;
-
-            if (mods.Any(h => h is OsuModFlashlight))
-                baseFlashlightPerformance = Flashlight.DifficultyToPerformance(flashlightRating);
+            double baseReadingPerformance = OsuStrainSkill.DifficultyToPerformance(readingRating);
 
             double basePerformance =
                 Math.Pow(
                     Math.Pow(baseAimPerformance, 1.1) +
                     Math.Pow(baseSpeedPerformance, 1.1) +
-                    Math.Pow(baseFlashlightPerformance, 1.1), 1.0 / 1.1
+                    Math.Pow(baseReadingPerformance, 1.1), 1.0 / 1.1
                 );
 
             double starRating = basePerformance > 0.00001
@@ -102,12 +98,13 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                 AimDifficultSliderCount = difficultSliders,
                 SpeedDifficulty = speedRating,
                 SpeedNoteCount = speedNotes,
-                FlashlightDifficulty = flashlightRating,
+                ReadingDifficulty = readingRating,
                 SliderFactor = sliderFactor,
                 AimDifficultStrainCount = aimDifficultyStrainCount,
                 SpeedDifficultStrainCount = speedDifficultyStrainCount,
                 DrainRate = drainRate,
                 MaxCombo = beatmap.GetMaxCombo(),
+                ApproachRate = beatmap.Difficulty.ApproachRate,
                 HitCircleCount = hitCirclesCount,
                 SliderCount = sliderCount,
                 SpinnerCount = spinnerCount,
@@ -137,11 +134,9 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             {
                 new Aim(mods, true),
                 new Aim(mods, false),
-                new Speed(mods)
+                new Speed(mods),
+                new Reading(mods, beatmap.Difficulty.ApproachRate)
             };
-
-            if (mods.Any(h => h is OsuModFlashlight))
-                skills.Add(new Flashlight(mods));
 
             return skills.ToArray();
         }

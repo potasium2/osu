@@ -17,9 +17,9 @@ namespace osu.Game.Rulesets.Difficulty
     {
         protected const int ATTRIB_ID_AIM = 1;
         protected const int ATTRIB_ID_SPEED = 3;
+        protected const int ATTRIB_ID_READING = 5;
         protected const int ATTRIB_ID_MAX_COMBO = 9;
         protected const int ATTRIB_ID_DIFFICULTY = 11;
-        protected const int ATTRIB_ID_FLASHLIGHT = 17;
         protected const int ATTRIB_ID_SLIDER_FACTOR = 19;
         protected const int ATTRIB_ID_SPEED_NOTE_COUNT = 21;
         protected const int ATTRIB_ID_SPEED_DIFFICULT_STRAIN_COUNT = 23;
@@ -43,6 +43,12 @@ namespace osu.Game.Rulesets.Difficulty
         /// </summary>
         [JsonProperty("max_combo", Order = -2)]
         public int MaxCombo { get; set; }
+
+        /// <summary>
+        /// The approach rate of the given beatmap
+        /// </summary>
+        [JsonProperty("approach_rate", Order = -1)]
+        public double ApproachRate {  get; set; }
 
         /// <summary>
         /// Creates new <see cref="DifficultyAttributes"/>.

@@ -2,9 +2,11 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using osu.Game.Rulesets.Difficulty.Preprocessing;
-using osu.Game.Rulesets.Difficulty.Skills;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu.Difficulty.Evaluators;
 using osu.Game.Rulesets.Osu.Mods;
@@ -12,16 +14,19 @@ using osu.Game.Rulesets.Osu.Mods;
 namespace osu.Game.Rulesets.Osu.Difficulty.Skills
 {
     /// <summary>
-    /// Represents the skill required to memorise and hit every object in a map with the Flashlight mod enabled.
+    /// Represents the skill required to read a given beatmap dependent on modifiers used as well as the Approach Rate of Objects.
     /// </summary>
-    public class Flashlight : StrainSkill
+    internal class Reading : OsuStrainSkill
     {
         private readonly bool hasHiddenMod;
-
-        public Flashlight(Mod[] mods)
+        private readonly bool hasFlashlightMod;
+        private readonly double ApproachRate;
+        public Reading(Mod[] mods, double approachRate)
             : base(mods)
         {
             hasHiddenMod = mods.Any(m => m is OsuModHidden);
+            hasFlashlightMod = mods.Any(m => m is OsuModFlashlight);
+            ApproachRate = approachRate;
         }
 
         private double skillMultiplier => 0.05512;
@@ -36,13 +41,16 @@ namespace osu.Game.Rulesets.Osu.Difficulty.Skills
         protected override double StrainValueAt(DifficultyHitObject current)
         {
             currentStrain *= strainDecay(current.DeltaTime);
-            currentStrain += FlashlightEvaluator.EvaluateDifficultyOf(current, hasHiddenMod) * skillMultiplier;
+            currentStrain += ReadingEvaluator.ReadingDifficultyOf(current, hasHiddenMod, ApproachRate) * skillMultiplier;
+
+            if (hasHiddenMod)
+                currentStrain += ReadingEvaluator.HiddenDifficultyOf(current) * skillMultiplier;
+            if (hasFlashlightMod)
+                currentStrain += ReadingEvaluator.FlashlightDifficultyOf(current, hasHiddenMod) * skillMultiplier;
 
             return currentStrain;
         }
 
         public override double DifficultyValue() => GetCurrentStrainPeaks().Sum();
-
-        public static double DifficultyToPerformance(double difficulty) => 25 * Math.Pow(difficulty, 2);
     }
 }
